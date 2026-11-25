@@ -1,0 +1,1381 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: Sweating V0 API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+  - name: auth
+  - name: profiles
+  - name: classes
+  - name: activity
+  - name: admin
+  - name: owner
+  - name: messages
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /auth/signup:
+    post:
+      operationId: signUp
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthCredentials"
+      responses:
+        "201":
+          description: Account created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSession"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /auth/login:
+    post:
+      operationId: logIn
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthCredentials"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSession"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /auth/recover:
+    post:
+      operationId: requestPasswordReset
+      tags: [auth]
+      summary: Send a password recovery email
+      description: >
+        Asks Supabase Auth to email a recovery link. The same response is
+        returned whether or not the address is registered.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordResetRequest"
+      responses:
+        "200":
+          description: Recovery request accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PasswordResetNotice"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          description: Recovery email could not be requested
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /auth/reset-password:
+    post:
+      operationId: resetPassword
+      tags: [auth]
+      summary: Set a new password from a recovery link
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordResetInput"
+      responses:
+        "200":
+          description: Password updated. The session is present when sign-in with the new password succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PasswordResetResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /auth/logout:
+    post:
+      operationId: logOut
+      tags: [auth]
+      responses:
+        "204":
+          description: Logged out
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      tags: [auth]
+      responses:
+        "200":
+          description: Current session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSession"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /account/consents:
+    post:
+      operationId: acceptAccountConsents
+      tags: [auth]
+      summary: Record the current required consents for the signed-in member
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConsentAcceptance"
+      responses:
+        "200":
+          description: Current consents stored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConsentStatus"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /account/deletion:
+    post:
+      operationId: deleteMyAccount
+      tags: [auth]
+      summary: Delete the signed-in member and their own rows
+      description: >
+        Requires the confirmation phrase. Refuses a gym owner who still has
+        an upcoming draft or published class.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccountDeletionInput"
+      responses:
+        "200":
+          description: Account deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountDeleted"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /profiles/me:
+    get:
+      operationId: getMyProfile
+      tags: [profiles]
+      responses:
+        "200":
+          description: Current profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      operationId: saveMyProfile
+      tags: [profiles]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileInput"
+      responses:
+        "200":
+          description: Saved profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+  /profiles/me/photo:
+    post:
+      operationId: uploadMyProfilePhoto
+      tags: [profiles]
+      summary: Upload a private profile photo
+      description: >
+        Accepts one JPEG, PNG, or WEBP body of at most 5 MB. The object is stored
+        in a private bucket under the member's own folder. profile_photo_ref is
+        the value saved on the profile. profile_photo_url is a short-lived signed
+        URL for the owner. There is no public object URL. Existing http(s) photo
+        values are left in place until a new file replaces them.
+      requestBody:
+        required: true
+        content:
+          image/jpeg:
+            schema: { type: string, format: binary }
+          image/png:
+            schema: { type: string, format: binary }
+          image/webp:
+            schema: { type: string, format: binary }
+      responses:
+        "200":
+          description: Photo stored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfilePhotoUpload"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "413":
+          description: The file is larger than 5 MB
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /classes:
+    get:
+      operationId: listClasses
+      tags: [classes]
+      parameters:
+        - $ref: "#/components/parameters/SportType"
+      responses:
+        "200":
+          description: Published classes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClassSummary"
+  /classes/{classId}:
+    get:
+      operationId: getClass
+      tags: [classes]
+      parameters:
+        - $ref: "#/components/parameters/ClassId"
+      responses:
+        "200":
+          description: Class details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassDetail"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /classes/{classId}/participants:
+    post:
+      operationId: joinClass
+      tags: [classes]
+      parameters:
+        - $ref: "#/components/parameters/ClassId"
+      responses:
+        "201":
+          description: Joined class
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Participant"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          $ref: "#/components/responses/Conflict"
+    delete:
+      operationId: cancelClassSeat
+      tags: [classes]
+      parameters:
+        - $ref: "#/components/parameters/ClassId"
+      responses:
+        "200":
+          description: Seat released, or the caller was already cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Participant"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /classes/{classId}/blind:
+    get:
+      operationId: getBlindWorkout
+      tags: [classes]
+      parameters:
+        - $ref: "#/components/parameters/ClassId"
+      responses:
+        "200":
+          description: Blind workout room without other participant PII
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlindRoom"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /classes/{classId}/revealed-participants:
+    get:
+      operationId: getRevealedParticipants
+      tags: [classes]
+      parameters:
+        - $ref: "#/components/parameters/ClassId"
+      responses:
+        "200":
+          description: Revealed participants after a completed workout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RevealedParticipantsResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /classes/{classId}/likes:
+    post:
+      operationId: likeParticipant
+      tags: [classes]
+      parameters:
+        - $ref: "#/components/parameters/ClassId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LikeInput"
+      responses:
+        "200":
+          description: Like recorded, with the current match state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LikeResult"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /activity:
+    get:
+      operationId: getMyActivity
+      tags: [activity]
+      responses:
+        "200":
+          description: Upcoming and completed activity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Activity"
+  /admin/gyms:
+    get:
+      operationId: listAdminGyms
+      tags: [admin]
+      responses:
+        "200":
+          description: Gyms
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Gym"
+    post:
+      operationId: createGym
+      tags: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GymInput"
+      responses:
+        "201":
+          description: Created gym
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Gym"
+  /admin/gyms/{gymId}:
+    patch:
+      operationId: updateGym
+      tags: [admin]
+      parameters:
+        - $ref: "#/components/parameters/GymId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GymInput"
+      responses:
+        "200":
+          description: Updated gym
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Gym"
+  /admin/gyms/{gymId}/owner:
+    get:
+      operationId: getGymOwner
+      tags: [admin]
+      description: Admin-only. Returns the display name of the assigned owner, never the email address.
+      parameters:
+        - $ref: "#/components/parameters/GymId"
+      responses:
+        "200":
+          description: Current gym owner, or null
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GymOwnerResponse"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      operationId: assignGymOwner
+      tags: [admin]
+      description: Admin-only lookup of an existing account by email. The response does not include the email.
+      parameters:
+        - $ref: "#/components/parameters/GymId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GymOwnerAssign"
+      responses:
+        "201":
+          description: Assigned owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GymOwnerResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+    delete:
+      operationId: removeGymOwner
+      tags: [admin]
+      parameters:
+        - $ref: "#/components/parameters/GymId"
+      responses:
+        "204":
+          description: Owner removed
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /owner/gyms:
+    get:
+      operationId: listOwnedGyms
+      tags: [owner]
+      description: Gyms owned by the signed-in user. Members receive 403.
+      responses:
+        "200":
+          description: Owned gyms
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Gym"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /owner/classes:
+    get:
+      operationId: listOwnedClasses
+      tags: [owner]
+      parameters:
+        - name: gym_id
+          in: query
+          required: false
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Classes for gyms the caller owns
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClassDetail"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      operationId: createOwnedClass
+      tags: [owner]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClassInput"
+      responses:
+        "201":
+          description: Created class
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassDetail"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /owner/classes/{classId}:
+    patch:
+      operationId: updateOwnedClass
+      tags: [owner]
+      parameters:
+        - $ref: "#/components/parameters/ClassId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClassInput"
+      responses:
+        "200":
+          description: Updated class
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassDetail"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /owner/classes/{classId}/participants:
+    get:
+      operationId: listOwnedClassParticipants
+      tags: [owner]
+      description: Minimal roster. Display name and attendance only.
+      parameters:
+        - $ref: "#/components/parameters/ClassId"
+      responses:
+        "200":
+          description: Minimal participant rows
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OwnerRosterEntry"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /owner/classes/{classId}/participants/{userId}/attendance:
+    patch:
+      operationId: recordOwnedAttendance
+      tags: [owner]
+      parameters:
+        - $ref: "#/components/parameters/ClassId"
+        - $ref: "#/components/parameters/UserId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AttendanceInput"
+      responses:
+        "200":
+          description: Updated attendance without payment fields
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OwnerAttendanceResult"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /owner/classes/{classId}/complete:
+    patch:
+      operationId: completeOwnedClass
+      tags: [owner]
+      parameters:
+        - $ref: "#/components/parameters/ClassId"
+      responses:
+        "200":
+          description: Completed class
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassDetail"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /messages:
+    get:
+      operationId: listMessages
+      tags: [messages]
+      description: >
+        Announcements visible to the signed-in user. Reads use that user's
+        JWT. An approved gym owner receives the current principles and owner
+        notices. Other callers receive an empty list. Author ids are omitted.
+      responses:
+        "200":
+          description: Inbox announcements
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageInbox"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /messages/principles/acknowledge:
+    post:
+      operationId: acknowledgeOwnerPrinciples
+      tags: [messages]
+      description: >
+        Stores the caller's acknowledgement of the current principles version.
+        Idempotent. The user JWT is sent to acknowledge_owner_principles.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PrinciplesAcknowledgementInput"
+      responses:
+        "200":
+          description: Stored acknowledgement time
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrinciplesAcknowledgement"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /admin/announcements:
+    get:
+      operationId: listAdminAnnouncements
+      tags: [admin]
+      description: Admin-only list of owner notices. Principles text is not edited here.
+      responses:
+        "200":
+          description: Owner notices
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageInbox"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      operationId: createAdminAnnouncement
+      tags: [admin]
+      description: >
+        Admin-only owner notice. The service role writes the row and the
+        author is the signed-in admin. The request cannot set kind, version,
+        or author.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OwnerNoticeInput"
+      responses:
+        "201":
+          description: Published owner notice
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OwnerNoticeResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /admin/classes:
+    get:
+      operationId: listAdminClasses
+      tags: [admin]
+      responses:
+        "200":
+          description: All classes for administration
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClassDetail"
+    post:
+      operationId: createClass
+      tags: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClassInput"
+      responses:
+        "201":
+          description: Created class
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassDetail"
+  /admin/classes/{classId}:
+    patch:
+      operationId: updateClass
+      tags: [admin]
+      parameters:
+        - $ref: "#/components/parameters/ClassId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClassInput"
+      responses:
+        "200":
+          description: Updated class
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassDetail"
+  /admin/classes/{classId}/participants:
+    get:
+      operationId: listClassParticipants
+      tags: [admin]
+      parameters:
+        - $ref: "#/components/parameters/ClassId"
+      responses:
+        "200":
+          description: Class participants
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Participant"
+  /admin/classes/{classId}/participants/{userId}/attendance:
+    patch:
+      operationId: recordAttendance
+      tags: [admin]
+      description: >
+        Record attended or no_show. Allowed for the gym owner (class host) or
+        an approved admin, from the scheduled start through 24 hours after the
+        scheduled end. Participants cannot mark themselves.
+      parameters:
+        - $ref: "#/components/parameters/ClassId"
+        - $ref: "#/components/parameters/UserId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AttendanceInput"
+      responses:
+        "200":
+          description: Updated participant attendance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Participant"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /admin/classes/{classId}/complete:
+    patch:
+      operationId: completeClass
+      tags: [admin]
+      parameters:
+        - $ref: "#/components/parameters/ClassId"
+      responses:
+        "200":
+          description: Completed class
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassDetail"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /matches:
+    get:
+      operationId: listMatches
+      tags: [matches]
+      responses:
+        "200":
+          description: Matches for the current user
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MatchSummary"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /matches/{matchId}:
+    get:
+      operationId: getMatch
+      tags: [matches]
+      parameters:
+        - $ref: "#/components/parameters/MatchId"
+      responses:
+        "200":
+          description: A match visible to the current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MatchSummary"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+components:
+  parameters:
+    ClassId:
+      name: classId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    UserId:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    GymId:
+      name: gymId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    MatchId:
+      name: matchId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    SportType:
+      name: sport
+      in: query
+      required: false
+      schema:
+        type: string
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Conflict:
+      description: Conflict
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+        supabase_project_ref:
+          type: ["string", "null"]
+          description: >
+            20-character project ref parsed from the SUPABASE_URL host
+            (https://<ref>.supabase.co). Null when that variable is unset
+            or the host is not a Supabase project host. Never an API key,
+            a database password, or the full URL.
+          pattern: "^[a-z0-9]{20}$"
+      required: [status, supabase_project_ref]
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
+    AuthCredentials:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        terms:
+          type: boolean
+          description: Required by the signup screen. Stored only when a session exists and all three are true.
+        privacy:
+          type: boolean
+        overseas_transfer:
+          type: boolean
+      required: [email, password]
+    PasswordResetRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+      required: [email]
+    PasswordResetNotice:
+      type: object
+      properties:
+        message:
+          type: string
+      required: [message]
+    PasswordResetInput:
+      type: object
+      properties:
+        access_token:
+          type: string
+          minLength: 20
+          maxLength: 8192
+        password:
+          type: string
+          minLength: 10
+          maxLength: 200
+      required: [access_token, password]
+    PasswordResetResult:
+      type: object
+      properties:
+        message:
+          type: string
+        session:
+          anyOf:
+            - $ref: "#/components/schemas/AuthSession"
+            - type: "null"
+      required: [message, session]
+    AuthSession:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        profile:
+          anyOf:
+            - $ref: "#/components/schemas/Profile"
+            - type: "null"
+        consents_current:
+          type: boolean
+          description: True when terms, privacy, and overseas transfer are stored for the current document version.
+      required: [user, profile, consents_current]
+    ConsentAcceptance:
+      type: object
+      properties:
+        terms: { type: boolean }
+        privacy: { type: boolean }
+        overseas_transfer: { type: boolean }
+      required: [terms, privacy, overseas_transfer]
+    ConsentRecord:
+      type: object
+      properties:
+        kind:
+          type: string
+          enum: [terms, privacy, overseas_transfer]
+        version:
+          type: string
+        accepted_at:
+          type: string
+          format: date-time
+      required: [kind, version, accepted_at]
+    ConsentStatus:
+      type: object
+      properties:
+        consents_current:
+          type: boolean
+        records:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConsentRecord"
+      required: [consents_current, records]
+    AccountDeletionInput:
+      type: object
+      properties:
+        confirm:
+          type: string
+          description: Must be the Korean confirmation phrase.
+      required: [confirm]
+    AccountDeleted:
+      type: object
+      properties:
+        deleted:
+          type: boolean
+      required: [deleted]
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+      required: [id, email]
+    Profile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        display_name:
+          type: string
+        birth_year:
+          type: [integer, "null"]
+        gender:
+          type: [string, "null"]
+        profile_photo_url:
+          type: string
+        sports:
+          type: array
+          items: { type: string }
+        interests:
+          type: array
+          items: { type: string }
+        bio:
+          type: [string, "null"]
+        age_band:
+          anyOf:
+            - type: string
+              enum: ["20_25", "26_35", "36_45"]
+            - type: "null"
+          description: Derived from birth_year and the current year in Asia/Seoul. Not stored and not an identity check.
+        age_preference:
+          type: string
+          enum: [same_band, both]
+          description: same_band keeps class join in the member band. both also allows the one band directly above. Not a like filter.
+        birth_year_locked:
+          type: boolean
+          description: True after the first non-null birth_year save. Further changes are rejected for the member.
+        is_admin:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required: [id, display_name, profile_photo_url, sports, interests, birth_year_locked, is_admin, created_at, updated_at]
+    ProfileInput:
+      type: object
+      properties:
+        display_name: { type: string, minLength: 1 }
+        birth_year: { type: integer, minimum: 1900, maximum: 2100 }
+        gender: { type: [string, "null"] }
+        profile_photo_url: { type: string, minLength: 1 }
+        sports:
+          type: array
+          items: { type: string }
+          minItems: 1
+        interests:
+          type: array
+          items: { type: string }
+        bio: { type: [string, "null"] }
+        age_preference:
+          type: string
+          enum: [same_band, both]
+          description: Omit to leave the stored value. same_band is older preference off. both is on.
+      required: [display_name, birth_year, profile_photo_url, sports, interests]
+    ProfilePhotoUpload:
+      type: object
+      properties:
+        profile_photo_ref:
+          type: string
+          description: Canonical profiles.profile_photo_url value. A storage reference is not a public URL.
+        profile_photo_url:
+          type: string
+          description: Short-lived signed URL for the owner. Empty when signing fails.
+      required: [profile_photo_ref, profile_photo_url]
+    Gym:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        description: { type: [string, "null"] }
+        address: { type: string }
+        city: { type: string }
+        latitude: { type: [number, "null"] }
+        longitude: { type: [number, "null"] }
+        image_url: { type: [string, "null"] }
+        created_at: { type: string, format: date-time }
+      required: [id, name, address, city, created_at]
+    GymInput:
+      type: object
+      properties:
+        name: { type: string, minLength: 1 }
+        description: { type: [string, "null"] }
+        address: { type: string, minLength: 1 }
+        city: { type: string, minLength: 1 }
+        latitude: { type: [number, "null"] }
+        longitude: { type: [number, "null"] }
+        image_url: { type: [string, "null"] }
+      required: [name, address, city]
+    GymOwnerAssign:
+      type: object
+      additionalProperties: false
+      properties:
+        email: { type: string, format: email, minLength: 3, maxLength: 320 }
+      required: [email]
+    GymOwnerSummary:
+      type: object
+      properties:
+        user_id: { type: string, format: uuid }
+        display_name: { type: [string, "null"] }
+      required: [user_id]
+    GymOwnerResponse:
+      type: object
+      properties:
+        owner:
+          anyOf:
+            - $ref: "#/components/schemas/GymOwnerSummary"
+            - type: "null"
+      required: [owner]
+    Announcement:
+      type: object
+      properties:
+        kind:
+          type: string
+          enum: [principles, owner_notice]
+        title: { type: string }
+        body: { type: string }
+        published_at: { type: string, format: date-time }
+        notice_version: { type: string }
+        is_current: { type: boolean }
+        acknowledged_at: { type: [string, "null"], format: date-time }
+      required: [kind, title, body, published_at, notice_version, is_current, acknowledged_at]
+    MessageInbox:
+      type: object
+      properties:
+        announcements:
+          type: array
+          items:
+            $ref: "#/components/schemas/Announcement"
+      required: [announcements]
+    PrinciplesAcknowledgementInput:
+      type: object
+      additionalProperties: false
+      properties:
+        notice_version:
+          type: string
+          pattern: "^owner-principles-[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+      required: [notice_version]
+    PrinciplesAcknowledgement:
+      type: object
+      properties:
+        notice_version: { type: string }
+        acknowledged_at: { type: string, format: date-time }
+      required: [notice_version, acknowledged_at]
+    OwnerNoticeInput:
+      type: object
+      additionalProperties: false
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        body: { type: string, minLength: 1, maxLength: 8000 }
+      required: [title, body]
+    OwnerNoticeResponse:
+      type: object
+      properties:
+        announcement:
+          $ref: "#/components/schemas/Announcement"
+      required: [announcement]
+    OwnerRosterEntry:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        user_id: { type: string, format: uuid }
+        attendance_status: { type: string }
+        display_name: { type: [string, "null"] }
+      required: [id, user_id, attendance_status]
+    OwnerAttendanceResult:
+      type: object
+      additionalProperties: false
+      properties:
+        id: { type: string, format: uuid }
+        class_id: { type: string, format: uuid }
+        user_id: { type: string, format: uuid }
+        attendance_status: { type: string }
+        joined_at: { type: string, format: date-time }
+      required: [id, attendance_status]
+    ClassInput:
+      type: object
+      properties:
+        gym_id: { type: string, format: uuid }
+        title: { type: string, minLength: 1 }
+        sport_type: { type: string, minLength: 1 }
+        description: { type: [string, "null"] }
+        scheduled_at: { type: string, format: date-time }
+        duration_minutes: { type: integer, minimum: 1 }
+        capacity: { type: integer, minimum: 1 }
+        price: { type: integer, minimum: 0 }
+        image_url: { type: [string, "null"] }
+        status: { type: string, enum: [draft, published, completed, cancelled] }
+        age_band:
+          type: string
+          enum: ["20_25", "26_35", "36_45"]
+          description: Recruiting band. NULL on an existing class allows every member.
+      required: [gym_id, title, sport_type, scheduled_at, duration_minutes, capacity, price, status, age_band]
+    LikeInput:
+      type: object
+      properties:
+        participant_id: { type: string, format: uuid }
+      required: [participant_id]
+    LikeResult:
+      type: object
+      properties:
+        liked: { type: boolean }
+        matched: { type: boolean }
+        match_id: { type: [string, "null"], format: uuid }
+      required: [liked, matched, match_id]
+    PublicParticipantProfile:
+      type: object
+      properties:
+        participant_id: { type: string, format: uuid }
+        display_name: { type: string }
+        profile_photo_url: { type: string }
+        sports:
+          type: array
+          items: { type: string }
+        interests:
+          type: array
+          items: { type: string }
+        bio: { type: [string, "null"] }
+        is_liked: { type: boolean }
+        is_matched: { type: boolean }
+      required: [participant_id, display_name, profile_photo_url, sports, interests, is_liked, is_matched]
+    RevealedParticipantsResponse:
+      type: object
+      properties:
+        class:
+          $ref: "#/components/schemas/ClassDetail"
+        is_revealed: { type: boolean }
+        message: { type: string }
+        participants:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicParticipantProfile"
+      required: [class, is_revealed, message, participants]
+    MatchSummary:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        class_id: { type: string, format: uuid }
+        class_title: { type: string }
+        sport_type: { type: string }
+        scheduled_at: { type: string, format: date-time }
+        gym_name: { type: string }
+        participant:
+          $ref: "#/components/schemas/PublicParticipantProfile"
+      required: [id, class_id, class_title, sport_type, scheduled_at, gym_name, participant]
+    ClassSummary:
+      allOf:
+        - $ref: "#/components/schemas/ClassDetail"
+    ClassDetail:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        gym_id: { type: string, format: uuid }
+        title: { type: string }
+        sport_type: { type: string }
+        description: { type: [string, "null"] }
+        scheduled_at: { type: string, format: date-time }
+        duration_minutes: { type: integer }
+        capacity: { type: integer }
+        price: { type: integer }
+        image_url: { type: [string, "null"] }
+        status: { type: string }
+        age_band:
+          anyOf:
+            - type: string
+              enum: ["20_25", "26_35", "36_45"]
+            - type: "null"
+          description: NULL allows every member. A set band is 20_25, 26_35, or 36_45.
+        created_at: { type: string, format: date-time }
+        gym:
+          $ref: "#/components/schemas/Gym"
+        participant_count: { type: integer }
+        remaining_slots: { type: integer }
+        is_joined: { type: boolean }
+      required: [id, gym_id, title, sport_type, scheduled_at, duration_minutes, capacity, price, status, created_at, gym, participant_count, remaining_slots, is_joined]
+    AttendanceInput:
+      type: object
+      properties:
+        attendance_status:
+          type: string
+          enum: [attended, no_show]
+      required: [attendance_status]
+    Participant:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        class_id: { type: string, format: uuid }
+        user_id: { type: string, format: uuid }
+        payment_status: { type: string }
+        attendance_status: { type: string }
+        joined_at: { type: string, format: date-time }
+        display_name: { type: [string, "null"] }
+        profile_photo_url: { type: [string, "null"] }
+      required: [id, class_id, user_id, payment_status, attendance_status, joined_at]
+    BlindRoom:
+      type: object
+      properties:
+        class:
+          $ref: "#/components/schemas/ClassDetail"
+        participant_count: { type: integer }
+        participant_slots:
+          type: array
+          items: { type: string }
+        is_before_start: { type: boolean }
+        is_revealed: { type: boolean }
+        message: { type: string }
+        participants:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicParticipantProfile"
+      required: [class, participant_count, participant_slots, is_before_start, is_revealed, message, participants]
+    Activity:
+      type: object
+      properties:
+        upcoming:
+          type: array
+          items: { $ref: "#/components/schemas/ClassDetail" }
+        completed:
+          type: array
+          items: { $ref: "#/components/schemas/ClassDetail" }
+      required: [upcoming, completed]

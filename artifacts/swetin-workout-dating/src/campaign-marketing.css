@@ -1,0 +1,67 @@
+/* Sprint2A campaign presentation. Scoped; demo styles untouched. */
+.m-nav{display:flex;gap:18px;margin-left:auto;margin-right:14px;font:500 12px var(--sans);white-space:nowrap}
+.m-nav a{padding:12px 0}
+.marketing-page>.site-header .m-nav a{color:var(--paper)}
+.dev-strip{display:flex;align-items:center;gap:10px;width:min(100% - 36px,1120px);margin:0 auto;padding:8px 0}
+.dev-strip span{font:500 10px var(--mono);letter-spacing:.12em;color:var(--muted)}
+.dev-strip .demo-entry{flex:1;display:flex;align-items:center;justify-content:center;min-height:44px;padding:0 14px;border:1px solid #ff6a3d;background:#fff1ec;color:#1d1d1b;font:700 14px var(--sans)}
+@media(min-width:700px){.m-nav{display:none}.dev-strip{width:min(100% - 64px,1120px)}.dev-strip .demo-entry{flex:none;margin-left:auto;min-height:36px;font-size:12px}}
+.cm-hero{position:relative;min-height:min(78dvh,680px);display:flex;align-items:flex-end;overflow:hidden;background:#202522;color:#fff}
+.cm-hero>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:70% 30%}
+@media(max-width:699px){.cm-hero>img{object-position:78% 30%}.vv-about .vv-hero>img{object-position:74% center}}
+.cm-hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(17,17,17,.4),rgba(17,17,17,.82))}
+.cm-hero-copy{position:relative;z-index:1;width:min(100% - 32px,1120px);margin:0 auto;padding:80px 0 40px}
+.cm-hero h1{margin:0;font-weight:800;font-size:clamp(28px,8.4vw,92px);line-height:1.12;letter-spacing:-.05em}
+.cm-hero h1 span{display:block;white-space:nowrap}
+.cm-hero h1 .l1{color:#fff}.cm-hero h1 .l2{color:#ff6a3d}
+.cm-sub{margin:16px 0 22px;font:500 13px var(--mono);letter-spacing:.2em;color:rgba(255,255,255,.85)}
+.cm-cta{display:inline-flex;align-items:center;gap:10px;min-height:52px;padding:0 24px;background:#ff6a3d;color:#1d1d1b;font:700 16px var(--sans)}
+.cm-h2{margin:0;font:700 clamp(26px,7vw,44px)/1.2 var(--hb-font);letter-spacing:-.04em}
+.vv-hero h1 .cm-l{display:block;white-space:nowrap}
+.vv-about .vv-hero h1,.cm-partner-hero h1{font-size:clamp(24px,7.4vw,84px)}
+.vv-hero h1 b.cm-l{color:var(--vv-accent)}
+.vv-partners .vv-hero h1 b.cm-l{color:#ff6a3d}
+.cm-partner-hero>img{object-position:50% 40%}
+.cm-photo{display:block;width:100%;max-height:340px;object-fit:cover;margin-top:32px}
+.cm-photo.cm-tall{max-height:300px;object-position:50% 40%}
+@media(min-width:900px){.cm-photo{max-height:420px}}
+
+/* header: one row on mobile, no avatar. Start stays in the row. */
+@media(max-width:699px){.header-avatar{display:none!important}.site-header .brand{font-size:18px}.m-nav{gap:4px;margin-right:8px}.m-nav a{display:inline-flex;align-items:center;min-height:44px;padding:0 8px}.menu-trigger{min-width:44px;min-height:44px;padding:0;justify-content:center}.site-header{gap:0}}
+.mobile-drawer{overflow-y:auto;overscroll-behavior:contain;padding-bottom:calc(32px + env(safe-area-inset-bottom))}
+.mobile-drawer .brand{margin-bottom:56px;flex:none}
+.mobile-drawer button:not(.drawer-close){flex:none;min-height:56px}
+.drawer-close{min-width:44px;min-height:44px}
+@media(max-height:640px){.mobile-drawer .brand{margin-bottom:36px}.mobile-drawer button:not(.drawer-close){font-size:21px;padding:12px 0}}
+/* about layout */
+.vv-about .vv-hero+.vv-sec .vv-w{display:grid;gap:0}
+.vv-about .vv-step{border-top:3px solid #ff6a3d;padding:22px 20px}
+.vv-about .vv-step small{display:block;font-size:12px}
+.vv-about .vv-step h3{font-size:14px}
+.vv-about .vv-card{border-top:3px solid #ff6a3d;border-bottom:1px solid var(--vv-line);padding:28px 20px;background:#fff}
+.vv-about .vv-card p{font-size:20px;font-weight:600;word-break:keep-all;overflow-wrap:break-word}
+/* Account for the DEV strip as well as the 72px header, keeping the
+   first-screen hero CTA above the fixed mobile action. Production has no strip. */
+@media(max-width:899px){.dev-strip+main .vv-about .vv-hero{min-height:min(calc(100svh - 124px),760px)}}
+@media(max-width:699px){.dev-strip+main .vv-about .vv-hero{min-height:min(calc(100svh - 132px),760px)}}
+@media(max-width:699px){.vv-about .vv-cards{gap:12px;border-top:0}.vv-about .vv-card{border:1px solid var(--vv-line);border-top:3px solid #ff6a3d}.vv-about .vv-steps{counter-reset:s}}
+@media(min-width:900px){
+ .vv-about .vv-hero+.vv-sec .vv-w{grid-template-columns:1fr 1fr;column-gap:64px;align-items:start}
+ .vv-about .vv-hero+.vv-sec .cm-photo{grid-column:2;grid-row:1/4;margin:0;max-height:none;height:100%;min-height:440px}
+ .vv-about .vv-hero+.vv-sec .vv-eyebrow,.vv-about .vv-hero+.vv-sec .vv-h2,.vv-about .vv-hero+.vv-sec .vv-body{grid-column:1}
+ .vv-about .vv-steps{gap:16px}
+}
+/* partners layout */
+.vv-partners .vv-benefits li{align-items:baseline}
+.vv-partners .vv-benefits li::before{color:#ff6a3d}
+.vv-partners #partner-form .vv-w{max-width:760px}
+.vv-partners .vv-form{max-width:none;padding:24px 20px;border:1px solid var(--vv-line);background:#f7f7f5;gap:20px}
+.vv-partners .vv-checks label{white-space:nowrap;flex:0 0 auto}
+.vv-partners .vv-checks input[type=checkbox]{width:16px;height:16px;flex:0 0 16px;padding:0;margin:0}
+@media(min-width:700px){.vv-partners .vv-form{padding:36px;grid-template-columns:1fr 1fr}.vv-partners .vv-form>fieldset,.vv-partners .vv-form>div,.vv-partners .vv-form>button,.vv-partners .vv-form>label:nth-of-type(n+7){grid-column:1/-1}}
+@media(min-width:900px){
+ .vv-partners .vv-sec:has(.vv-benefits) .vv-w{display:grid;grid-template-columns:5fr 6fr;column-gap:64px;align-items:start}
+ .vv-partners .vv-sec:has(.vv-benefits) .vv-eyebrow,.vv-partners .vv-sec:has(.vv-benefits) .vv-h2{grid-column:2}
+ .vv-partners .vv-sec:has(.vv-benefits) .cm-photo{grid-column:1;grid-row:1/4;margin:0;max-height:none;height:100%;min-height:480px}
+ .vv-partners .vv-sec:has(.vv-benefits) .vv-benefits{grid-column:2;margin-top:12px}
+}

@@ -1,0 +1,64 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "pnpm install --frozen-lockfile",
+  "buildCommand": "pnpm run build:vercel",
+  "outputDirectory": "artifacts/swetin-workout-dating/dist/public",
+  "regions": ["hnd1"],
+  "functions": {
+    "api/**/*.mjs": {
+      "includeFiles": "artifacts/api-server/dist/*.mjs"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/api",
+      "transforms": [
+        {
+          "type": "request.path",
+          "op": "set",
+          "args": "/api/:path*"
+        }
+      ]
+    },
+    {
+      "source": "/((?!api(?:/|$)|apple-touch-icon\\.png$|manifest\\.webmanifest$|favicon(?:-32)?\\.(?:ico|svg|png)$|icon-(?:512-maskable|512|192)\\.png$).*)",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/manifest.webmanifest",
+      "headers": [{ "key": "Content-Type", "value": "application/manifest+json" }]
+    },
+    {
+      "source": "/apple-touch-icon.png",
+      "headers": [{ "key": "Content-Type", "value": "image/png" }]
+    },
+    {
+      "source": "/icon-192.png",
+      "headers": [{ "key": "Content-Type", "value": "image/png" }]
+    },
+    {
+      "source": "/icon-512.png",
+      "headers": [{ "key": "Content-Type", "value": "image/png" }]
+    },
+    {
+      "source": "/icon-512-maskable.png",
+      "headers": [{ "key": "Content-Type", "value": "image/png" }]
+    },
+    {
+      "source": "/favicon-32.png",
+      "headers": [{ "key": "Content-Type", "value": "image/png" }]
+    },
+    {
+      "source": "/favicon.ico",
+      "headers": [{ "key": "Content-Type", "value": "image/x-icon" }]
+    },
+    {
+      "source": "/favicon.svg",
+      "headers": [{ "key": "Content-Type", "value": "image/svg+xml" }]
+    }
+  ]
+}

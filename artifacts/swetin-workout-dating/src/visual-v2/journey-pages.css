@@ -1,0 +1,18 @@
+.demo-entry{display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:0 12px;border-radius:999px;background:#c8431f;color:#fff;font-weight:700;font-size:13px;white-space:nowrap;text-decoration:none;border:0;cursor:pointer}
+.mobile-drawer .demo-entry{min-height:48px;font-size:16px}
+@media(max-width:480px){.site-header .demo-entry{padding:0 9px;font-size:12px}}
+.jr-reset{margin:8px 0}
+.jr-link{text-decoration:underline;font-weight:700}
+.jr-grid{display:grid;gap:12px}
+.jr-card{display:grid;gap:8px;padding:14px;border:1px solid rgba(0,0,0,.15);border-radius:12px;min-width:0}
+.jr-card h2{margin:0;font-size:18px}
+.jr-card p{margin:0;overflow-wrap:anywhere}
+.jr-btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 16px;border-radius:10px;border:1px solid currentColor;font-weight:700;background:none;cursor:pointer;text-decoration:none;color:inherit}
+.jr-btn.fill{background:#1d2a22;color:#fff;border-color:#1d2a22}
+.jr-chat{display:grid;gap:8px;max-height:50vh;overflow:auto;padding:8px 0}
+.jr-msg{max-width:85%;padding:8px 12px;border-radius:12px;overflow-wrap:anywhere;background:rgba(0,0,0,.07)}
+.jr-msg.me{justify-self:end;background:#1d2a22;color:#fff}
+.jr-msg small{display:block;opacity:.7;font-size:11px}
+.jr-form{display:flex;gap:8px}
+.jr-form input{flex:1;min-width:0;min-height:44px;padding:0 12px;border-radius:10px;border:1px solid rgba(0,0,0,.3);font:inherit}
+.jr-banner{display:grid;gap:6px;padding:12px;border-radius:10px;background:#fff3e6;font-size:14px}
